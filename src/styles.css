@@ -101,3 +101,56 @@ body
     font-size: 350%;
     text-align: right;
 }
+
+#DetailView
+{
+    min-height: 100vh;
+}
+
+#DetailCurrent, #DetailHourly
+{
+    text-align: center;
+}
+
+#DetailCurrentTemp
+{
+    padding: 128px 0px 20px 0px;
+}
+
+#DetailCurrentTempValue
+{
+    font-size: 800%;
+    font-weight: lighter;
+}
+
+#DetailCurrentTempUnit
+{
+    font-size: 200%;
+}
+
+#DetailCurrentTime
+{
+    margin: 8px 0px 32px 0px;
+}
+
+#DetailHourly
+{
+    display: flex;
+    overflow-x: scroll;
+}
+
+.DetailHourlyChild
+{
+    padding: 10px;
+}
+
+.DetailHourlyCondition
+{
+    font-size: 200%;
+    margin-bottom: 8px;
+}
+
+.DetailHourlyTemp
+{
+    margin-bottom: 4px;
+}
