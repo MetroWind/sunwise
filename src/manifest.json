@@ -1,0 +1,11 @@
+{
+    "name": "Sunwise",
+    "start_url": "/",
+    "display": "standalone",
+    "icons": [
+        {
+            "src": "icon.png",
+            "sizes": "any"
+        }
+    ]
+}
