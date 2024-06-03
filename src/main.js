@@ -2,11 +2,13 @@ let e = React.createElement;
 
 class AppState
 {
-    constructor()
+    constructor(state)
     {
-        // Can be “list”, “detail”.
-        this.state = "list";
+        // Can be “list”, “detail”, “search”.
+        this.state = state;
+        // Null location means to use current location.
         this.detail_location = null;
+        this.locations = [null,];
     }
 }
 
@@ -40,7 +42,7 @@ function WeatherSummaryView({location})
 
     if(state == "loading")
     {
-        if(location === null)
+        if(location == null)
         {
             navigator.geolocation.getCurrentPosition((loc) => {
                 getCurrentWeatherFromCoords(loc.coords).then((weather_data) => {
@@ -51,7 +53,7 @@ function WeatherSummaryView({location})
         }
         else
         {
-            getCurrentWeatherFromCity(location).then((weather_data) => {
+            getCurrentWeatherFromLocation(location).then((weather_data) => {
                 setData(weather_data);
                 setState("ready");
             });
@@ -70,12 +72,11 @@ function WeatherSummaryView({location})
     }
 }
 
-function WeatherListView({onClickLocation})
+function WeatherListView({locations, onClickLocation})
 {
     const style = {
         background: "linear-gradient(170deg, rgba(181,226,255,1) 0%, rgba(255,198,152,1) 100%)",
     };
-    const locations = ["Lexington", "Beijing"];
     const sub_views = locations.map((loc) =>
         e("li", {key: loc, style: style, onClick: () => onClickLocation(loc)},
           e(WeatherSummaryView, {location: loc})));
@@ -95,7 +96,7 @@ function WeatherDetailView({location})
 
     if(state == "loading")
     {
-        if(location === null)
+        if(location == null)
         {
             navigator.geolocation.getCurrentPosition((loc) => {
                 getDetailedWeatherFromCoords(loc.coords).then((weather_data) => {
@@ -106,7 +107,7 @@ function WeatherDetailView({location})
         }
         else
         {
-            getDetailedWeatherFromCity(location).then((weather_data) => {
+            getDetailedWeatherFromLocation(location).then((weather_data) => {
                 setData(weather_data);
                 setState("ready");
             });
@@ -151,28 +152,104 @@ function WeatherDetailView({location})
     }
 }
 
-function AppView()
+function SearchView({ onChange, onClickSearchResult })
 {
-    const [state, setState] = React.useState(new AppState());
+    const [term, setTerm] = React.useState("");
+    const [results, setResults] = React.useState([]);
+
+    function onTermChange(e)
+    {
+        const term = e.target.value;
+        setTerm(term);
+        onChange(term);
+        if(term.length < 3)
+        {
+            return;
+        }
+        searchLocation(term).then((search_results) => {
+            setResults(search_results);
+        });
+    }
+
+    function onClickResult(loc)
+    {
+        setTerm("");
+        setResults([]);
+        onClickSearchResult(loc);
+    }
+
+    let result_views = results.map((loc, i) =>
+        e("li", {key: i, className: "SearchResult", onClick: () => onClickResult(loc)}, loc.str()));
+    let results_style = {};
+
+    if(term.length < 3)
+    {
+        results_style = { display: "none" };
+    }
+
+    return e("div", { id: "SearchWrapper" },
+             e("div", {id: "SearchBar" },
+               e("input", { id: "TextSearch", type: "search", onChange: onTermChange, value: term})),
+             e("ul", { id: "SearchResults", style: results_style }, result_views));
+}
+
+function AppView({locations})
+{
+    let initial_state = new AppState("list");
+    initial_state.locations = locations;
+    const [state, setState] = React.useState(initial_state);
+
     function onClickLocation(loc)
     {
-        console.debug("Clicked on " + loc);
-        let new_state = new AppState();
+        let new_state = structuredClone(state);
         new_state.state = "detail";
         new_state.detail_location = loc;
         setState(new_state);
-        history.pushState(null, null, "#" + loc);
+        // history.pushState(null, null, "#" + loc);
+    }
+
+    function onClickSearchResult(loc)
+    {
+        console.debug(`Clicked on ${loc.str()}`);
+        let new_state = structuredClone(state);
+        new_state.state = "list";
+        new_state.locations.push(loc);
+        setState(new_state);
+        saveLocations(new_state.locations);
+    }
+
+    function onSearchTermChange(term)
+    {
+        if(term.length > 0)
+        {
+            let new_state = structuredClone(state);
+            new_state.state = "search";
+            setState(new_state);
+        }
+        else
+        {
+            let new_state = structuredClone(state);
+            new_state.state = "list";
+            setState(new_state);
+        }
     }
 
     if(state.state == "list")
     {
-        return e(WeatherListView, {onClickLocation: onClickLocation});
+        return e("div", { id: "WeatherListWrapper" },
+                 e(SearchView, {onChange: onSearchTermChange, onClickSearchResult: onClickSearchResult}),
+                 e(WeatherListView, {locations: state.locations, onClickLocation: onClickLocation}));
     }
     else if(state.state == "detail")
     {
         return e(WeatherDetailView, {location: state.detail_location});
     }
+    else if(state.state == "search")
+    {
+        return e("div", { id: "WeatherListWrapper" },
+                 e(SearchView, {onChange: onSearchTermChange, onClickSearchResult: onClickSearchResult}));
+    }
 }
 
 let body = ReactDOM.createRoot(document.getElementById('AppWrapper'));
-body.render(e(AppView, {config: null}));
+body.render(e(AppView, {locations: loadLocations()}));

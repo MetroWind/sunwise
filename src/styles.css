@@ -154,3 +154,24 @@ body
 {
     margin-bottom: 4px;
 }
+
+#SearchBar
+{
+    padding: 4px;
+}
+
+#TextSearch
+{
+    all: unset;
+    border: 2px #888 solid;
+    border-radius: 1em;
+    padding: 0.5em;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.SearchResult
+{
+    padding: 8px;
+    border-bottom: 1px #888 solid;
+}

@@ -1,3 +1,65 @@
+class Location
+{
+    constructor(name, province, country, coords)
+    {
+        this.name = name;
+        this.province = province;
+        this.country = country;
+        this.coords = coords;
+    }
+
+    str()
+    {
+        return `${this.name}, ${this.province}, ${this.country}`;
+    }
+
+    toAArray()
+    {
+        return {name: this.name, province: this.province, country: this.country,
+                coords: this.coords};
+    }
+
+    static fromAArray(json)
+    {
+        return new Location(json.name, json.province, json.country, json.coords);
+    }
+}
+
+function saveLocations(locs)
+{
+    window.localStorage.setItem(
+        "locations", JSON.stringify(locs.map((loc) => {
+            if(loc == null)
+            {
+                return null;
+            }
+            else
+            {
+                return loc.toAArray();
+            }
+        })));
+}
+
+function loadLocations()
+{
+    let json_str = window.localStorage.getItem("locations");
+    if(json_str == null)
+    {
+        console.warn("Failed to load locations.");
+        return [null,];
+    }
+    return JSON.parse(json_str).map((o) => {
+        if(o == null)
+        {
+            return null;
+        }
+        else
+        {
+            return Location.fromAArray(o);
+        }
+    });
+}
+
 class Weather
 {
     constructor()

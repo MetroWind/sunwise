@@ -1,10 +1,11 @@
 // Use OpenStreetMap’s Noninatim and Open Meteo as data source.
 
-async function coordsToLocationName(coords)
+async function coordsToLocation(coords)
 {
     const res_geo = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${coords.latitude}&lon=${coords.longitude}&format=geocodejson`);
     const json_geo = await res_geo.json();
-    return json_geo.features[0].properties.geocoding.city;
+    const geo_coding = json_geo.features[0].properties.geocoding;
+    return new Location(geo_coding.city, geo_coding.state, geo_coding.country, coords);
 }
 
 // Return an object that has property “latitude” and “longitude”.
@@ -69,12 +70,17 @@ function weatherFromJSON(json, city)
     return data;
 }
 
+async function getCurrentWeatherFromLocation(loc)
+{
+    const res_weather = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${loc.coords.latitude}&longitude=${loc.coords.longitude}&timezone=auto&current=temperature_2m,weather_code`)
+    const json_weather = await res_weather.json();
+    return weatherFromJSON(json_weather, loc.name);
+}
+
 async function getCurrentWeatherFromCoords(coords)
 {
-    const city = await coordsToLocationName(coords);
-    const res_weather = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${coords.latitude}&longitude=${coords.longitude}&timezone=auto&current=temperature_2m,weather_code`)
-    const json_weather = await res_weather.json();
-    return weatherFromJSON(json_weather, city);
+    const loc = await coordsToLocation(coords);
+    return await getCurrentWeatherFromLocation(loc);
 }
 
 async function getCurrentWeatherFromCity(city)
@@ -85,12 +91,17 @@ async function getCurrentWeatherFromCity(city)
     return weatherFromJSON(json_weather, city);
 }
 
+async function getDetailedWeatherFromLocation(loc)
+{
+    const res_weather = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${loc.coords.latitude}&longitude=${loc.coords.longitude}&timezone=auto&current=temperature_2m,weather_code&hourly=temperature_2m,weather_code&daily=weather_code,temperature_2m_max,temperature_2m_min`);
+    const json_weather = await res_weather.json();
+    return weatherFromJSON(json_weather, loc.name);
+}
+
 async function getDetailedWeatherFromCoords(coords)
 {
-    const city = await coordsToLocationName(coords);
-    const res_weather = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${coords.latitude}&longitude=${coords.longitude}&timezone=auto&current=temperature_2m,weather_code&hourly=temperature_2m,weather_code&daily=weather_code,temperature_2m_max,temperature_2m_min`);
-    const json_weather = await res_weather.json();
-    return weatherFromJSON(json_weather, city);
+    const loc = await coordsToLocation(coords);
+    return await getDetailedWeatherFromLocation(loc);
 }
 
 async function getDetailedWeatherFromCity(city)
@@ -100,4 +111,20 @@ async function getDetailedWeatherFromCity(city)
     const json_weather = await res_weather.json();
     console.debug(json_weather);
     return weatherFromJSON(json_weather, city);
+}
+
+async function searchLocation(name)
+{
+    const res = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${name}&count=10&language=en&format=json`);
+    const json = await res.json();
+    return json.results.map((result) => {
+        let province = result.admin1;
+        if(province == "")
+        {
+            province = admin2;
+        }
+
+        return new Location(result.name, province, result.country,
+                            {latitude: result.latitude, longitude: result.longitude});
+    });
 }
