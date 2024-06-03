@@ -1,11 +1,16 @@
 {
     "name": "Sunwise",
-    "start_url": "/",
+    "start_url": "./",
     "display": "standalone",
     "icons": [
         {
-            "src": "icon.png",
+            "src": "icon.svg",
             "sizes": "any"
+        },
+        {
+            "src": "icon-512.png",
+            "sizes": "512x512",
+            "type": "image/png"
         }
     ]
 }
