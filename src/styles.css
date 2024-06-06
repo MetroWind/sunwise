@@ -62,7 +62,7 @@ body
     font-style: normal;
     font-variation-settings:
         "slnt" 0;
-    font-size: 14px;
+    font-size: 16px;
 }
 
 #WeatherList
@@ -98,7 +98,7 @@ body
 .SummaryTemp
 {
     font-weight: 300;
-    font-size: 350%;
+    font-size: 300%;
     text-align: right;
 }
 
@@ -119,13 +119,13 @@ body
 
 #DetailCurrentTempValue
 {
-    font-size: 800%;
+    font-size: 600%;
     font-weight: lighter;
 }
 
 #DetailCurrentTempUnit
 {
-    font-size: 200%;
+    font-size: 150%;
 }
 
 #DetailCurrentTime
@@ -137,6 +137,8 @@ body
 {
     display: flex;
     overflow-x: scroll;
+    border-top: solid 1px color-mix(in srgb, currentColor 10%, transparent);
+    border-bottom: solid 1px color-mix(in srgb, currentColor 10%, transparent);
 }
 
 .DetailHourlyChild
@@ -153,6 +155,38 @@ body
 .DetailHourlyTemp
 {
     margin-bottom: 4px;
+}
+
+#DetailDaily
+{
+    margin-top: 10px;
+}
+
+.DetailDailyChild
+{
+    display: flex;
+    padding: 10px;
+}
+
+.DetailDailyWeekday
+{
+    min-width: 10em;
+}
+
+.DetailDailyCondition
+{
+    flex-grow: 1;
+}
+
+.DetailDailyTempMax, .DetailDailyTempMin
+{
+    width: 3em;
+    text-align: right;
+}
+
+.DetailDailyTempMin
+{
+    opacity: 0.7;
 }
 
 #SearchBar

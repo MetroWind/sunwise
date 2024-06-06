@@ -28,7 +28,7 @@ function timeToWeekDayStr(t, time_zone_str)
 {
     console.debug(t);
     const time = new Intl.DateTimeFormat("en", {
-        weekday: "short",
+        weekday: "long",
         timeZone: time_zone_str,
     });
     return time.format(t);
@@ -128,15 +128,16 @@ function WeatherDetailView({location})
 
         const dailies = data.forecast_days.map((weather, i) =>
             e("li", {className: "DetailDailyChild", key: i},
+              e("div", {className: "DetailDailyWeekday"},
+                timeToWeekDayStr(weather.time, data.time_zone)),
               e("div", {className: "DetailDailyCondition"},
                 weatherCodeToIcon(weather.condition)),
               e("div", {className: "DetailDailyTempMax"},
                 `${weather.temperature_cel_max}°C`),
               e("div", {className: "DetailDailyTempMin"},
-                `${weather.temperature_cel_min}°C`),
-              e("div", {className: "DetailDailyWeekday"},
-                timeToWeekDayStr(weather.time, data.time_zone))));
+                `${weather.temperature_cel_min}°C`)));
 
+        let time_str = timeToTimeStr(data.current_weather.time, data.time_zone);
         return e("div", {id: "DetailView", style: style},
                  e("div", {id: "DetailCurrent"},
                    e("div", {id: "DetailCurrentTemp"},
@@ -145,10 +146,9 @@ function WeatherDetailView({location})
                      e("span", {id: "DetailCurrentTempUnit"}, "°C")),
                    e("div", {id: "DetailCurrentCondition"},
                      weatherCodeToStr(data.current_weather.condition)),
-                   e("div", {id: "DetailCurrentTime"},
-                     `as of ${timeToTimeStr(data.current_weather.time, data.time_zone)}`),
-                   e("ul", {id: "DetailHourly"}, hourlies),
-                   e("ul", {id: "DetailDaily"}, dailies)));
+                   e("div", {id: "DetailCurrentTime"}, `as of ${time_str}`)),
+                 e("ul", {id: "DetailHourly"}, hourlies),
+                 e("ul", {id: "DetailDaily"}, dailies));
     }
 }
 
@@ -179,7 +179,8 @@ function SearchView({ onChange, onClickSearchResult })
     }
 
     let result_views = results.map((loc, i) =>
-        e("li", {key: i, className: "SearchResult", onClick: () => onClickResult(loc)}, loc.str()));
+        e("li", {key: i, className: "SearchResult",
+                 onClick: () => onClickResult(loc)}, loc.str()));
     let results_style = {};
 
     if(term.length < 3)
@@ -189,8 +190,10 @@ function SearchView({ onChange, onClickSearchResult })
 
     return e("div", { id: "SearchWrapper" },
              e("div", {id: "SearchBar" },
-               e("input", { id: "TextSearch", type: "search", onChange: onTermChange, value: term})),
-             e("ul", { id: "SearchResults", style: results_style }, result_views));
+               e("input", { id: "TextSearch", type: "search",
+                            onChange: onTermChange, value: term})),
+             e("ul", { id: "SearchResults", style: results_style },
+               result_views));
 }
 
 function AppView({locations})
@@ -237,8 +240,10 @@ function AppView({locations})
     if(state.state == "list")
     {
         return e("div", { id: "WeatherListWrapper" },
-                 e(SearchView, {onChange: onSearchTermChange, onClickSearchResult: onClickSearchResult}),
-                 e(WeatherListView, {locations: state.locations, onClickLocation: onClickLocation}));
+                 e(SearchView, {onChange: onSearchTermChange,
+                                onClickSearchResult: onClickSearchResult}),
+                 e(WeatherListView, {locations: state.locations,
+                                     onClickLocation: onClickLocation}));
     }
     else if(state.state == "detail")
     {
@@ -247,7 +252,8 @@ function AppView({locations})
     else if(state.state == "search")
     {
         return e("div", { id: "WeatherListWrapper" },
-                 e(SearchView, {onChange: onSearchTermChange, onClickSearchResult: onClickSearchResult}));
+                 e(SearchView, {onChange: onSearchTermChange,
+                                onClickSearchResult: onClickSearchResult}));
     }
 }
 
