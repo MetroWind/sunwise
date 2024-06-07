@@ -65,6 +65,11 @@ body
     font-size: 16px;
 }
 
+#WeatherListWrapper, #DetailView
+{
+    min-height: 100vh;
+}
+
 #WeatherList
 {
     width: 100%;
@@ -92,7 +97,7 @@ body
 .SummaryLocation
 {
     font-weight: bold;
-    font-size: 150%;
+    font-size: 120%;
 }
 
 .SummaryTemp
@@ -100,11 +105,6 @@ body
     font-weight: 300;
     font-size: 300%;
     text-align: right;
-}
-
-#DetailView
-{
-    min-height: 100vh;
 }
 
 #DetailCurrent, #DetailHourly
@@ -166,6 +166,7 @@ body
 {
     display: flex;
     padding: 10px;
+    align-items: center;
 }
 
 .DetailDailyWeekday
@@ -176,6 +177,7 @@ body
 .DetailDailyCondition
 {
     flex-grow: 1;
+    font-size: 150%;
 }
 
 .DetailDailyTempMax, .DetailDailyTempMin
@@ -191,13 +193,13 @@ body
 
 #SearchBar
 {
-    padding: 4px;
+    padding: 6px;
 }
 
 #TextSearch
 {
     all: unset;
-    border: 2px #888 solid;
+    background-color: color-mix(in srgb, currentColor 15%, transparent);
     border-radius: 1em;
     padding: 0.5em;
     width: 100%;

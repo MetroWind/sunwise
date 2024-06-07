@@ -23,6 +23,79 @@ function timeToTimeStr(t, time_zone_str)
     return short_time.format(t);
 }
 
+// Convert Date object to 24h hour as an integer.
+function timeToHour(t, time_zone_str)
+{
+    const hour_format = new Intl.DateTimeFormat("en", {
+        hour: "numeric",
+        hour12: false,
+        timeZone: time_zone_str,
+    });
+    return Number(hour_format.format(t));
+}
+
+function findStyleByHourWeather(hour, weather_code)
+{
+    console.debug(`Looking for style for ${hour}, ${weather_code}...`)
+    function hourMatch(h, style)
+    {
+        if(style.hours.length == 0)
+        {
+            return true;
+        }
+        return h >= style.hours[0] && h < style.hours[1];
+    }
+
+    function weatherMatch(code, style)
+    {
+        if(style.weather_codes.length == 0)
+        {
+            return true;
+        }
+        return style.weather_codes.includes(code);
+    }
+
+    return THEME.weather.find((style) => hourMatch(hour, style) &&
+                              weatherMatch(weather_code, style));
+}
+
+// Return a CSS style dict (for React components) from a style defined
+// in the theme.
+function styleFromThemeStyle(style_spec)
+{
+    if(style_spec == null)
+    {
+        return {};
+    }
+    let style = {};
+    const bg = style_spec.background;
+    console.debug(`BG type is ${bg.type}`);
+    if(bg.type == "color")
+    {
+        style = {
+            background: bg.color,
+        };
+    }
+    else if(bg.type == "gradient")
+    {
+        style = {
+            background: `linear-gradient(170deg, ${bg.color1} 0%, ${bg.color2} 100%)`,
+        };
+    }
+    else if(bg.type == "image")
+    {
+        style = {
+            background: `no-repeat center/cover url("${bg.url}")`,
+        };
+        console.debug(`BG is ${style.background}`);
+    }
+
+    if(style_spec.foreground_color != null)
+    {
+        style["color"] = style_spec.foreground_color;
+    }
+    return style;
+}
 // Convert Date object to week day string.
 function timeToWeekDayStr(t, time_zone_str)
 {
@@ -62,13 +135,16 @@ function WeatherSummaryView({location, now, onClick})
     }
     else if(state == "ready")
     {
-        const style = {
-            background: "linear-gradient(170deg, rgba(181,226,255,1) 0%, rgba(255,198,152,1) 100%)",
-        };
+        const hour = timeToHour(data.current_weather.time, data.time_zone);
+        const style_spec =
+              findStyleByHourWeather(hour, data.current_weather.condition);
+        let style = styleFromThemeStyle(style_spec);
         return e("li", {key: location, style: style,
                         onClick: () => onClick(location)},
                  e("div", {className: "SummaryLeft"},
                    e("div", {className: "SummaryLocation"}, data.location_name),
+                   e("div", {className: "SummaryTime"},
+                     timeToTimeStr(now, data.time_zone)),
                    e("div", {className: "SummaryCondition"},
                      weatherCodeToStr(data.current_weather.condition))),
                  e("div", {className: "SummaryTemp"},
@@ -79,6 +155,8 @@ function WeatherSummaryView({location, now, onClick})
 function WeatherListView({locations, onClickLocation})
 {
     const now = Date.now();
+    // Here we pass “now” into each list element, to ensure that the
+    // user sees the same time across all locations.
     const sub_views = locations.map((loc) =>
         e(WeatherSummaryView,
           {location: loc, now: now, onClick: onClickLocation}));
@@ -92,9 +170,15 @@ function WeatherDetailView({location})
     const [state, setState] = React.useState("loading");
     const [data, setData] = React.useState(null);
 
-    const style = {
-        background: "linear-gradient(170deg, rgba(181,226,255,1) 0%, rgba(255,198,152,1) 100%)",
-    };
+    let style = styleFromThemeStyle(THEME.app);
+    if(data != null)
+    {
+        const style_spec = findStyleByHourWeather(
+            timeToHour(Date.now(), data.time_zone),
+            data.current_weather.condition);
+        console.debug(`Found style: ${JSON.stringify(style_spec, null, 2)}`);
+        style = styleFromThemeStyle(style_spec);
+    }
 
     if(state == "loading")
     {
@@ -239,9 +323,11 @@ function AppView({locations})
         }
     }
 
+    let content = null;
     if(state.state == "list")
     {
-        return e("div", { id: "WeatherListWrapper" },
+        return e("div", { id: "WeatherListWrapper",
+                          style: styleFromThemeStyle(THEME.app) },
                  e(SearchView, {onChange: onSearchTermChange,
                                 onClickSearchResult: onClickSearchResult}),
                  e(WeatherListView, {locations: state.locations,
@@ -253,7 +339,8 @@ function AppView({locations})
     }
     else if(state.state == "search")
     {
-        return e("div", { id: "WeatherListWrapper" },
+        return e("div", { id: "WeatherListWrapper",
+                          style: styleFromThemeStyle(THEME.app) },
                  e(SearchView, {onChange: onSearchTermChange,
                                 onClickSearchResult: onClickSearchResult}));
     }
