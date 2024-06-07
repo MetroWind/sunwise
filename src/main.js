@@ -34,7 +34,7 @@ function timeToWeekDayStr(t, time_zone_str)
     return time.format(t);
 }
 
-function WeatherSummaryView({location})
+function WeatherSummaryView({location, now, onClick})
 {
     // State can be “ready”, “config”, “loading”.
     const [state, setState] = React.useState("loading");
@@ -62,7 +62,11 @@ function WeatherSummaryView({location})
     }
     else if(state == "ready")
     {
-        return e(React.Fragment, {},
+        const style = {
+            background: "linear-gradient(170deg, rgba(181,226,255,1) 0%, rgba(255,198,152,1) 100%)",
+        };
+        return e("li", {key: location, style: style,
+                        onClick: () => onClick(location)},
                  e("div", {className: "SummaryLeft"},
                    e("div", {className: "SummaryLocation"}, data.location_name),
                    e("div", {className: "SummaryCondition"},
@@ -74,12 +78,10 @@ function WeatherSummaryView({location})
 
 function WeatherListView({locations, onClickLocation})
 {
-    const style = {
-        background: "linear-gradient(170deg, rgba(181,226,255,1) 0%, rgba(255,198,152,1) 100%)",
-    };
+    const now = Date.now();
     const sub_views = locations.map((loc) =>
-        e("li", {key: loc, style: style, onClick: () => onClickLocation(loc)},
-          e(WeatherSummaryView, {location: loc})));
+        e(WeatherSummaryView,
+          {location: loc, now: now, onClick: onClickLocation}));
 
     return e("ul", {id: "WeatherList"}, sub_views);
 }
