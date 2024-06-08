@@ -1,5 +1,14 @@
 let e = React.createElement;
 
+function typeOf(x)
+{
+    if(x === null)
+    {
+        return "null";
+    }
+    return x.constructor.name;
+}
+
 class AppState
 {
     constructor(state)
@@ -9,6 +18,20 @@ class AppState
         // Null location means to use current location.
         this.detail_location = null;
         this.locations = [null,];
+    }
+
+    shallowCopy()
+    {
+        let copy = new AppState(this.state);
+        copy.detail_location = this.detail_location;
+        for(const loc of this.locations)
+        {
+            if(loc != null)
+            {
+                copy.locations.push(loc);
+            }
+        }
+        return copy;
     }
 }
 
@@ -36,7 +59,6 @@ function timeToHour(t, time_zone_str)
 
 function findStyleByHourWeather(hour, weather_code)
 {
-    console.debug(`Looking for style for ${hour}, ${weather_code}...`)
     function hourMatch(h, style)
     {
         if(style.hours.length == 0)
@@ -69,7 +91,6 @@ function styleFromThemeStyle(style_spec)
     }
     let style = {};
     const bg = style_spec.background;
-    console.debug(`BG type is ${bg.type}`);
     if(bg.type == "color")
     {
         style = {
@@ -87,7 +108,6 @@ function styleFromThemeStyle(style_spec)
         style = {
             background: `no-repeat center/cover url("${bg.url}")`,
         };
-        console.debug(`BG is ${style.background}`);
     }
 
     if(style_spec.foreground_color != null)
@@ -99,7 +119,6 @@ function styleFromThemeStyle(style_spec)
 // Convert Date object to week day string.
 function timeToWeekDayStr(t, time_zone_str)
 {
-    console.debug(t);
     const time = new Intl.DateTimeFormat("en", {
         weekday: "long",
         timeZone: time_zone_str,
@@ -107,7 +126,7 @@ function timeToWeekDayStr(t, time_zone_str)
     return time.format(t);
 }
 
-function WeatherSummaryView({location, now, onClick})
+function WeatherSummaryView({location, now, onClickSummary, onClickDelete})
 {
     // State can be “ready”, “config”, “loading”.
     const [state, setState] = React.useState("loading");
@@ -139,27 +158,37 @@ function WeatherSummaryView({location, now, onClick})
         const style_spec =
               findStyleByHourWeather(hour, data.current_weather.condition);
         let style = styleFromThemeStyle(style_spec);
-        return e("li", {key: location, style: style,
-                        onClick: () => onClick(location)},
-                 e("div", {className: "SummaryLeft"},
-                   e("div", {className: "SummaryLocation"}, data.location_name),
-                   e("div", {className: "SummaryTime"},
-                     timeToTimeStr(now, data.time_zone)),
-                   e("div", {className: "SummaryCondition"},
-                     weatherCodeToStr(data.current_weather.condition))),
-                 e("div", {className: "SummaryTemp"},
-                   `${data.current_weather.temperature_cel}°C`));
+        let delete_page = null;
+        if(location != null)
+        {
+            delete_page = e("div", {className: "SummaryDelete"},
+                            e("span", {className: "BtnDelete",
+                                       onClick: () => onClickDelete(location)} ));
+        }
+        return e("li", {key: location},
+                 e("div", {className: "SummaryContent", style: style,
+                           onClick: () => onClickSummary(location)},
+                   e("div", {className: "SummaryLeft"},
+                     e("div", {className: "SummaryLocation"}, data.location_name),
+                     e("div", {className: "SummaryTime"},
+                       timeToTimeStr(now, data.time_zone)),
+                     e("div", {className: "SummaryCondition"},
+                       weatherCodeToStr(data.current_weather.condition))),
+                   e("div", {className: "SummaryTemp"},
+                     `${data.current_weather.temperature_cel}°C`)),
+                 delete_page);
     }
 }
 
-function WeatherListView({locations, onClickLocation})
+function WeatherListView({locations, onClickLocation, onClickDelete})
 {
     const now = Date.now();
     // Here we pass “now” into each list element, to ensure that the
     // user sees the same time across all locations.
     const sub_views = locations.map((loc) =>
         e(WeatherSummaryView,
-          {location: loc, now: now, onClick: onClickLocation}));
+          {location: loc, now: now, onClickSummary: onClickLocation,
+           onClickDelete: onClickDelete}));
 
     return e("ul", {id: "WeatherList"}, sub_views);
 }
@@ -176,7 +205,6 @@ function WeatherDetailView({location})
         const style_spec = findStyleByHourWeather(
             timeToHour(Date.now(), data.time_zone),
             data.current_weather.condition);
-        console.debug(`Found style: ${JSON.stringify(style_spec, null, 2)}`);
         style = styleFromThemeStyle(style_spec);
     }
 
@@ -264,9 +292,11 @@ function SearchView({ onChange, onClickSearchResult })
         onClickSearchResult(loc);
     }
 
-    let result_views = results.map((loc, i) =>
-        e("li", {key: i, className: "SearchResult",
-                 onClick: () => onClickResult(loc)}, loc.str()));
+    let result_views = results.map((loc, i) => {
+        return e("li", {key: i, className: "SearchResult",
+                        onClick: () => onClickResult(loc)},
+                 loc.str());
+    });
     let results_style = {};
 
     if(term.length < 3)
@@ -290,17 +320,32 @@ function AppView({locations})
 
     function onClickLocation(loc)
     {
-        let new_state = structuredClone(state);
+        let new_state = state.shallowCopy();
         new_state.state = "detail";
         new_state.detail_location = loc;
         setState(new_state);
-        // history.pushState(null, null, "#" + loc);
+    }
+
+    function onClickDelete(loc)
+    {
+        let new_state = state.shallowCopy();
+        let idx = new_state.locations.indexOf(loc);
+        if(idx == -1)
+        {
+            console.error("Failed to find location to delete");
+            return;
+        }
+        new_state.locations.splice(idx, 1);
+        setState(new_state);
+        saveLocations(new_state.locations);
+        // For some reason the view doesn’t update correctly here...
+        // We’ll just refresh for now.
+        window.location.reload();
     }
 
     function onClickSearchResult(loc)
     {
-        console.debug(`Clicked on ${loc.str()}`);
-        let new_state = structuredClone(state);
+        let new_state = state.shallowCopy();
         new_state.state = "list";
         new_state.locations.push(loc);
         setState(new_state);
@@ -311,13 +356,13 @@ function AppView({locations})
     {
         if(term.length > 0)
         {
-            let new_state = structuredClone(state);
+            let new_state = state.shallowCopy();
             new_state.state = "search";
             setState(new_state);
         }
         else
         {
-            let new_state = structuredClone(state);
+            let new_state = state.shallowCopy();
             new_state.state = "list";
             setState(new_state);
         }
@@ -331,7 +376,8 @@ function AppView({locations})
                  e(SearchView, {onChange: onSearchTermChange,
                                 onClickSearchResult: onClickSearchResult}),
                  e(WeatherListView, {locations: state.locations,
-                                     onClickLocation: onClickLocation}));
+                                     onClickLocation: onClickLocation,
+                                     onClickDelete: onClickDelete}));
     }
     else if(state.state == "detail")
     {
@@ -347,4 +393,5 @@ function AppView({locations})
 }
 
 let body = ReactDOM.createRoot(document.getElementById('AppWrapper'));
-body.render(e(AppView, {locations: loadLocations()}));
+let locations = loadLocations();
+body.render(e(AppView, {locations: locations}));
